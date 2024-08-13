@@ -8,22 +8,20 @@ import torch
 import os
 import time
 import sys
+import ollama  # Import Ollama library
+from datetime import datetime
 from aider.coders import Coder
 from aider.models import Model
 from aider.io import InputOutput
-from datetime import datetime
 from ai_scientist.generate_ideas import generate_ideas, check_idea_novelty
 from ai_scientist.perform_experiments import perform_experiments
 from ai_scientist.perform_writeup import perform_writeup, generate_latex
 from ai_scientist.perform_review import perform_review, load_paper, perform_improvement
-import ollama  # Import Ollama library
 
 NUM_REFLECTIONS = 3
 
-
 def print_time():
     print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Run AI scientist experiments")
@@ -37,21 +35,19 @@ def parse_arguments():
         action="store_true",
         help="Skip novelty check and use existing ideas",
     )
-    # add type of experiment (nanoGPT, Boston, etc.)
     parser.add_argument(
         "--experiment",
         type=str,
         default="nanoGPT",
         help="Experiment to run AI Scientist on.",
     )
-parser.add_argument(
-    "--model",
-    type=str,
-    default="ollama",
-    choices=["claude-3-5-sonnet-20240620", "gpt-4o-2024-05-13", "deepseek-coder-v2-0724", "llama3.1-405b", "ollama"],
-    help="Model to use for AI Scientist.",
-)
-    
+    parser.add_argument(
+        "--model",
+        type=str,
+        default="ollama",
+        choices=["claude-3-5-sonnet-20240620", "gpt-4o-2024-05-13", "deepseek-coder-v2-0724", "llama3.1-405b", "ollama"],
+        help="Model to use for AI Scientist.",
+    )
     parser.add_argument(
         "--writeup",
         type=str,
@@ -84,12 +80,10 @@ parser.add_argument(
     )
     return parser.parse_args()
 
-
 def get_available_gpus(gpu_ids=None):
     if gpu_ids is not None:
         return [int(gpu_id) for gpu_id in gpu_ids.split(',')]
     return list(range(torch.cuda.device_count()))
-
 
 def worker(queue, base_dir, results_dir, model, client, client_model, writeup, improvement, gpu_id):
     os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu_id)
@@ -103,7 +97,6 @@ def worker(queue, base_dir, results_dir, model, client, client_model, writeup, i
         )
         print(f"Completed idea: {idea['Name']}, Success: {success}")
     print(f"Worker {gpu_id} finished.")
-
 
 def do_idea(
         base_dir, results_dir, idea, model, client, client_model, writeup, improvement, log_file=False
@@ -146,6 +139,8 @@ def do_idea(
             main_model = Model("deepseek/deepseek-coder")
         elif model == "llama3.1-405b":
             main_model = Model("openrouter/meta-llama/llama-3.1-405b-instruct")
+        elif model == "ollama":
+            main_model = Model("your-ollama-model-name")  # Replace with the specific model name used in Ollama
         else:
             main_model = Model(model)
         coder = Coder.create(
@@ -171,14 +166,6 @@ def do_idea(
         if writeup == "latex":
             writeup_file = osp.join(folder_name, "latex", "template.tex")
             fnames = [exp_file, writeup_file, notes]
-            if model == "hybrid":
-                main_model = Model("gpt-4o-2024-05-13")
-            elif model == "deepseek-coder-v2-0724":
-                main_model = Model("deepseek/deepseek-coder")
-            elif model == "llama3.1-405b":
-                main_model = Model("openrouter/meta-llama/llama-3.1-405b-instruct")
-            else:
-                main_model = Model(model)
             coder = Coder.create(
                 main_model=main_model, fnames=fnames, io=io, stream=False, use_git=False, edit_format="diff"
             )
@@ -230,7 +217,7 @@ def do_idea(
                     num_reviews_ensemble=5,
                     temperature=0.1,
                 )
-                # Store the review in separate review.txt file
+                # Store the review in separate review_improved.txt file
                 with open(osp.join(folder_name, "review_improved.txt"), "w") as f:
                     f.write(json.dumps(review))
             except Exception as e:
@@ -246,7 +233,6 @@ def do_idea(
             sys.stdout = original_stdout
             sys.stderr = original_stderr
             log.close()
-
 
 if __name__ == "__main__":
     args = parse_arguments()
@@ -292,6 +278,10 @@ if __name__ == "__main__":
             api_key=os.environ["OPENROUTER_API_KEY"],
             base_url="https://openrouter.ai/api/v1"
         )
+    elif args.model == "ollama":
+        print(f"Using Ollama API with model {args.model}.")
+        client_model = "your-ollama-model-name"  # Replace with the specific model name used in Ollama
+        client = ollama  # Use the Ollama client directly
     else:
         raise ValueError(f"Model {args.model} not supported.")
 
@@ -316,7 +306,6 @@ if __name__ == "__main__":
         json.dump(ideas, f, indent=4)
 
     novel_ideas = [idea for idea in ideas if idea["novel"]]
-    # novel_ideas = list(reversed(novel_ideas))
 
     if args.parallel > 0:
         print(f"Running {args.parallel} parallel processes")
