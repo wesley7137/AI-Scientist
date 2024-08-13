@@ -16,6 +16,7 @@ from ai_scientist.generate_ideas import generate_ideas, check_idea_novelty
 from ai_scientist.perform_experiments import perform_experiments
 from ai_scientist.perform_writeup import perform_writeup, generate_latex
 from ai_scientist.perform_review import perform_review, load_paper, perform_improvement
+import ollama  # Import Ollama library
 
 NUM_REFLECTIONS = 3
 
