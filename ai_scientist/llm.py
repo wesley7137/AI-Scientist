@@ -1,6 +1,7 @@
 import backoff
 import openai
 import json
+import ollama  # Import Ollama library
 
 
 # Get N responses from a single message, used for ensembling.
