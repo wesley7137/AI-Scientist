@@ -1,8 +1,6 @@
 import backoff
 import openai
 import json
-import ollama  # Import Ollama library
-
 
 # Get N responses from a single message, used for ensembling.
 @backoff.on_exception(backoff.expo, (openai.RateLimitError, openai.APITimeoutError))
@@ -43,22 +41,21 @@ def get_batch_responses_from_llm(
         ]
 
     elif model == "ollama":
-    new_msg_history = msg_history + [{"role": "user", "content": msg}]
-    response = client.chat.completions.create(
-        model="your-ollama-model-name",  # Replace with the specific model name used in Ollama
-        messages=[
-            {"role": "system", "content": system_message},
-            *new_msg_history,
-        ],
-        temperature=temperature,
-        max_tokens=3000,
-        n=n_responses,
-        stop=None,
-    )
-    content = [r.message.content for r in response.choices]
-    new_msg_history = [
-        new_msg_history + [{"role": "assistant", "content": c}] for c in content
-    ]
+        new_msg_history = msg_history + [{"role": "user", "content": msg}]
+        response = client.chat(model="your-ollama-model-name",  # Replace with the specific model name used in Ollama
+                               messages=[
+                                   {"role": "system", "content": system_message},
+                                   *new_msg_history,
+                               ],
+                               temperature=temperature,
+                               max_tokens=3000,
+                               n=n_responses,
+                               stop=None,
+                               )
+        content = [r.message['content'] for r in response]
+        new_msg_history = [
+            new_msg_history + [{"role": "assistant", "content": c}] for c in content
+        ]
 
     elif model == "deepseek-coder-v2-0724":
         new_msg_history = msg_history + [{"role": "user", "content": msg}]
@@ -76,7 +73,6 @@ def get_batch_responses_from_llm(
         content = response.choices[0].message.content
         new_msg_history = new_msg_history + [{"role": "assistant", "content": content}]
 
-]
     elif model == "llama-3-1-405b-instruct":
         new_msg_history = msg_history + [{"role": "user", "content": msg}]
         response = client.chat.completions.create(
@@ -123,7 +119,6 @@ def get_batch_responses_from_llm(
         print()
 
     return content, new_msg_history
-
 
 @backoff.on_exception(backoff.expo, (openai.RateLimitError, openai.APITimeoutError))
 def get_response_from_llm(
@@ -173,8 +168,6 @@ def get_response_from_llm(
         "gpt-4o-2024-05-13",
         "gpt-4o-mini-2024-07-18",
         "gpt-4o-2024-08-06",
-         "gpt-4o-mini",
-         "gpt-4o",
     ]:
         new_msg_history = msg_history + [{"role": "user", "content": msg}]
         response = client.chat.completions.create(
@@ -208,23 +201,20 @@ def get_response_from_llm(
         new_msg_history = new_msg_history + [{"role": "assistant", "content": content}]
 
     elif model == "ollama":
-    new_msg_history = msg_history + [{"role": "user", "content": msg}]
-    response = client.chat.completions.create(
-        model="your-ollama-model-name",  # Replace with the specific model name used in Ollama
-        messages=[
-            {"role": "system", "content": system_message},
-            *new_msg_history,
-        ],
-        temperature=temperature,
-        max_tokens=3000,
-        n=n_responses,
-        stop=None,
-    )
-        content = response.choices[0].message.content
+        new_msg_history = msg_history + [{"role": "user", "content": msg}]
+        response = client.chat(model="your-ollama-model-name",  # Replace with the specific model name used in Ollama
+                               messages=[
+                                   {"role": "system", "content": system_message},
+                                   *new_msg_history,
+                               ],
+                               temperature=temperature,
+                               max_tokens=3000,
+                               n=1,
+                               stop=None,
+                               )
+        content = response[0]['content']
         new_msg_history = new_msg_history + [{"role": "assistant", "content": content}]
-    ]
 
-    
     elif model in ["meta-llama/llama-3.1-405b-instruct", "llama-3-1-405b-instruct"]:
         new_msg_history = msg_history + [{"role": "user", "content": msg}]
         response = client.chat.completions.create(
@@ -254,14 +244,13 @@ def get_response_from_llm(
 
     return content, new_msg_history
 
-
 def extract_json_between_markers(llm_output):
     json_start_marker = "```json"
     json_end_marker = "```"
 
     # Find the start and end indices of the JSON string
     start_index = llm_output.find(json_start_marker)
-    if start_index != -1:
+    if (start_index != -1):
         start_index += len(json_start_marker)  # Move past the marker
         end_index = llm_output.find(json_end_marker, start_index)
     else:
