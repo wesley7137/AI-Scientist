@@ -40,6 +40,25 @@ def get_batch_responses_from_llm(
         new_msg_history = [
             new_msg_history + [{"role": "assistant", "content": c}] for c in content
         ]
+
+    elif model == "ollama":
+    new_msg_history = msg_history + [{"role": "user", "content": msg}]
+    response = client.chat.completions.create(
+        model="your-ollama-model-name",  # Replace with the specific model name used in Ollama
+        messages=[
+            {"role": "system", "content": system_message},
+            *new_msg_history,
+        ],
+        temperature=temperature,
+        max_tokens=3000,
+        n=n_responses,
+        stop=None,
+    )
+    content = [r.message.content for r in response.choices]
+    new_msg_history = [
+        new_msg_history + [{"role": "assistant", "content": c}] for c in content
+    ]
+
     elif model == "deepseek-coder-v2-0724":
         new_msg_history = msg_history + [{"role": "user", "content": msg}]
         response = client.chat.completions.create(
@@ -53,10 +72,10 @@ def get_batch_responses_from_llm(
             n=n_responses,
             stop=None,
         )
-        content = [r.message.content for r in response.choices]
-        new_msg_history = [
-            new_msg_history + [{"role": "assistant", "content": c}] for c in content
-        ]
+        content = response.choices[0].message.content
+        new_msg_history = new_msg_history + [{"role": "assistant", "content": content}]
+
+]
     elif model == "llama-3-1-405b-instruct":
         new_msg_history = msg_history + [{"role": "user", "content": msg}]
         response = client.chat.completions.create(
@@ -153,6 +172,8 @@ def get_response_from_llm(
         "gpt-4o-2024-05-13",
         "gpt-4o-mini-2024-07-18",
         "gpt-4o-2024-08-06",
+         "gpt-4o-mini",
+         "gpt-4o",
     ]:
         new_msg_history = msg_history + [{"role": "user", "content": msg}]
         response = client.chat.completions.create(
@@ -184,6 +205,25 @@ def get_response_from_llm(
         )
         content = response.choices[0].message.content
         new_msg_history = new_msg_history + [{"role": "assistant", "content": content}]
+
+    elif model == "ollama":
+    new_msg_history = msg_history + [{"role": "user", "content": msg}]
+    response = client.chat.completions.create(
+        model="your-ollama-model-name",  # Replace with the specific model name used in Ollama
+        messages=[
+            {"role": "system", "content": system_message},
+            *new_msg_history,
+        ],
+        temperature=temperature,
+        max_tokens=3000,
+        n=n_responses,
+        stop=None,
+    )
+        content = response.choices[0].message.content
+        new_msg_history = new_msg_history + [{"role": "assistant", "content": content}]
+    ]
+
+    
     elif model in ["meta-llama/llama-3.1-405b-instruct", "llama-3-1-405b-instruct"]:
         new_msg_history = msg_history + [{"role": "user", "content": msg}]
         response = client.chat.completions.create(
