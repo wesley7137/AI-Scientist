@@ -43,13 +43,14 @@ def parse_arguments():
         default="nanoGPT",
         help="Experiment to run AI Scientist on.",
     )
-    parser.add_argument(
-        "--model",
-        type=str,
-        default="claude-3-5-sonnet-20240620",
-        choices=["claude-3-5-sonnet-20240620", "gpt-4o-2024-05-13", "deepseek-coder-v2-0724", "llama3.1-405b"],
-        help="Model to use for AI Scientist.",
-    )
+parser.add_argument(
+    "--model",
+    type=str,
+    default="ollama",
+    choices=["claude-3-5-sonnet-20240620", "gpt-4o-2024-05-13", "deepseek-coder-v2-0724", "llama3.1-405b", "ollama"],
+    help="Model to use for AI Scientist.",
+)
+    
     parser.add_argument(
         "--writeup",
         type=str,
